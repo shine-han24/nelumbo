@@ -1,0 +1,116 @@
+/* ─────────────────────────────────────────────────────────────
+   nelumbo 디자인 토큰
+
+   기본 톤: 검정 · 흰색 · 하늘색 · 파란색. 기본 테마 이름은 "운하(雲荷)".
+
+   계층 1: --ui-*     앱 크롬(편집기 화면)의 색. data-ui-theme으로 전환.
+   계층 2: --paper-*  결과물(미리보기 페이지)의 색. UI 테마와 완전히 독립.
+   계층 3: --type-*   결과물의 조판 수치. 인라인 스타일로 주입됨.
+
+   ⚠ 규칙: 미리보기 DOM(.np-page 내부)은 --ui-* 를 절대 참조하지 않는다.
+     UI를 어둡게 바꿨을 때 내보낸 이미지 색이 달라지면 안 되기 때문.
+   ───────────────────────────────────────────────────────────── */
+
+:root {
+  /* 형태 — 절제된 반경, 헤어라인 위주 */
+  --ui-radius: 4px;
+  --ui-radius-lg: 6px;
+  --ui-hairline: 1px;
+
+  /* 간격 스케일 (조판 도구답게 조밀하게) */
+  --ui-gap-1: 4px;
+  --ui-gap-2: 8px;
+  --ui-gap-3: 12px;
+  --ui-gap-4: 16px;
+  --ui-gap-5: 24px;
+
+  /* 타입 스케일 — UI는 산세리프 1종, 본문 세리프 1종만 */
+  --ui-font: 'Noto Sans KR', -apple-system, 'Segoe UI', system-ui, sans-serif;
+  --ui-font-serif: 'Noto Serif KR', serif;
+  --ui-text-xs: 12px;
+  --ui-text-sm: 13px;
+  --ui-text-base: 14px;
+  --ui-text-lg: 17px;
+
+  --ui-shadow: 0 1px 2px rgb(0 0 0 / 0.05);
+  --ui-shadow-pop: 0 6px 20px rgb(15 40 80 / 0.16);
+}
+
+/* ── 계층 1: UI 테마 ────────────────────────────────────────── */
+
+/* 운하 — 기본. 흰 바탕에 검정 글씨, 하늘색과 파랑으로만 강조한다. */
+[data-ui-theme='unha'] {
+  --ui-bg: #eef4f9;
+  --ui-surface: #ffffff;
+  --ui-surface-2: #e3edf6;
+  --ui-border: #cfdeea;
+  --ui-border-strong: #a9c3d8;
+  --ui-text: #0b0f14;
+  --ui-text-dim: #5b6f80;
+  --ui-accent: #1668d8;
+  --ui-accent-text: #ffffff;
+  --ui-accent-soft: #d8e8fb;
+  --ui-danger: #b3261e;
+  --ui-canvas: #dbe6f0; /* 미리보기 뒤 작업대 */
+}
+
+/* 운하 밤 — 검정 바탕에 흰 글씨, 하늘색 강조 */
+[data-ui-theme='unha-night'] {
+  --ui-bg: #0b0f14;
+  --ui-surface: #121820;
+  --ui-surface-2: #1a222c;
+  --ui-border: #26313d;
+  --ui-border-strong: #3a4956;
+  --ui-text: #f2f6fa;
+  --ui-text-dim: #8aa0b3;
+  --ui-accent: #6cb6ff;
+  --ui-accent-text: #05192e;
+  --ui-accent-soft: #16283a;
+  --ui-danger: #e08a7c;
+  --ui-canvas: #05080b;
+}
+
+/* 하늘 — 밝고 채도가 낮은 하늘색 계열 */
+[data-ui-theme='sky'] {
+  --ui-bg: #dcecf7;
+  --ui-surface: #f4fafe;
+  --ui-surface-2: #c9e0f1;
+  --ui-border: #a8cde6;
+  --ui-border-strong: #7fb0d2;
+  --ui-text: #06202f;
+  --ui-text-dim: #4a758f;
+  --ui-accent: #0a7ea4;
+  --ui-accent-text: #ffffff;
+  --ui-accent-soft: #bfe2f2;
+  --ui-danger: #a33a2c;
+  --ui-canvas: #c3dcec;
+}
+
+/* 먹 — 순수 흑백 고대비. 사진 배경 작업할 때 눈이 덜 피로하다. */
+[data-ui-theme='ink'] {
+  --ui-bg: #000000;
+  --ui-surface: #0e0e0e;
+  --ui-surface-2: #1a1a1a;
+  --ui-border: #2e2e2e;
+  --ui-border-strong: #4a4a4a;
+  --ui-text: #ffffff;
+  --ui-text-dim: #9a9a9a;
+  --ui-accent: #ffffff;
+  --ui-accent-text: #000000;
+  --ui-accent-soft: #262626;
+  --ui-danger: #ff9c8a;
+  --ui-canvas: #000000;
+}
+
+/* ── 계층 2: 종이 토큰 ──────────────────────────────────────── */
+/* 실제 값은 styleStore가 인라인 스타일로 .np-page에 주입한다.
+   여기 정의된 것은 주입 실패 시의 폴백일 뿐이다. */
+
+.np-page {
+  --paper-bg: #ffffff;
+  --paper-text: #000000;
+  --paper-rule: #9aa4ad;
+
+  /* 브라우저/OS의 자동 색 반전을 차단 — 내보내기 결과가 흔들리면 안 된다 */
+  color-scheme: only light;
+}

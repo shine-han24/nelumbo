@@ -1,0 +1,78 @@
+@import 'tailwindcss';
+@import './styles/tokens.css';
+
+/* Tailwind 4: 토큰을 유틸리티로 노출 */
+@theme inline {
+  --color-ui-bg: var(--ui-bg);
+  --color-ui-surface: var(--ui-surface);
+  --color-ui-surface-2: var(--ui-surface-2);
+  --color-ui-border: var(--ui-border);
+  --color-ui-border-strong: var(--ui-border-strong);
+  --color-ui-text: var(--ui-text);
+  --color-ui-text-dim: var(--ui-text-dim);
+  --color-ui-accent: var(--ui-accent);
+  --color-ui-accent-text: var(--ui-accent-text);
+  --color-ui-accent-soft: var(--ui-accent-soft);
+  --color-ui-danger: var(--ui-danger);
+  --color-ui-canvas: var(--ui-canvas);
+
+  --radius-ui: var(--ui-radius);
+  --radius-ui-lg: var(--ui-radius-lg);
+
+  --font-ui: var(--ui-font);
+  --font-ui-serif: var(--ui-font-serif);
+}
+
+html,
+body,
+#root {
+  height: 100%;
+}
+
+body {
+  margin: 0;
+  background: var(--ui-bg);
+  color: var(--ui-text);
+  font-family: var(--ui-font);
+  font-size: var(--ui-text-base);
+  -webkit-font-smoothing: antialiased;
+  overscroll-behavior: none;
+}
+
+/* 조판 도구에서 UI 텍스트가 선택되는 건 방해만 된다.
+   에디터와 미리보기 본문은 아래에서 다시 켠다. */
+button,
+label,
+.np-chrome {
+  user-select: none;
+}
+
+::selection {
+  background: var(--ui-accent-soft);
+  color: var(--ui-text);
+}
+
+/* 스크롤바 — 기본 스타일은 조판 화면에서 지나치게 튄다 */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: var(--ui-border-strong) transparent;
+}
+*::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+*::-webkit-scrollbar-thumb {
+  background: var(--ui-border-strong);
+  border: 3px solid transparent;
+  background-clip: content-box;
+  border-radius: 6px;
+}
+*::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+/* 포커스 링 — 액센트 1색 원칙 */
+:where(button, input, select, textarea, [tabindex]):focus-visible {
+  outline: 2px solid var(--ui-accent);
+  outline-offset: 1px;
+}

@@ -1,0 +1,71 @@
+nelumbo — 이용 조건 (비상업적 이용 한정)
+Copyright (c) 2026 雲荷 (mayoland24@gmail.com)
+
+한국어 원문이 정본이며, 아래 영문은 참고 번역입니다.
+
+
+■ 허용
+
+누구나 다음을 무료로 할 수 있습니다.
+
+  1. 이 소프트웨어를 사용하는 것
+  2. 소스 코드를 복제·수정하는 것
+  3. 수정본을 배포하는 것 (아래 조건을 지키는 경우)
+
+■ 조건
+
+  1. 비상업적 이용에 한합니다.
+     이 소프트웨어 자체, 그 수정본, 그리고 이 소프트웨어로 만든
+     결과물을 상업적 목적으로 이용할 수 없습니다.
+     "상업적 목적"에는 판매, 유료 서비스에의 편입, 광고 수익 창출,
+     상품·홍보물 제작이 포함됩니다.
+
+  2. 배포하는 경우 이 라이선스 전문과 저작권 표시를 함께 포함해야 합니다.
+
+  3. 이 소프트웨어를 사용해 발췌한 원문의 저작권은 원저작자에게 있습니다.
+     발췌·인용은 저작권법이 허용하는 범위 안에서만 하십시오.
+     이 소프트웨어의 이용 조건은 원문의 저작권에 아무런 권리도
+     부여하지 않습니다.
+
+■ 보증의 부인
+
+이 소프트웨어는 "있는 그대로" 제공되며, 명시적이든 묵시적이든 어떠한
+보증도 하지 않습니다. 저작권자는 이 소프트웨어의 사용으로 발생한
+어떠한 손해에 대해서도 책임지지 않습니다.
+
+■ 상업적 이용 문의
+
+상업적 이용을 원하시면 mayoland24@gmail.com 으로 별도 문의하십시오.
+
+
+────────────────────────────────────────────────────────────
+English summary (informative; the Korean text above governs)
+
+You may use, copy, modify, and redistribute this software free of charge
+for NON-COMMERCIAL purposes only. Commercial use of the software, of any
+modified version, or of works produced with it — including sale,
+inclusion in a paid service, ad-supported distribution, or merchandise —
+is not permitted without separate written permission.
+
+Redistributions must include this license in full.
+
+Copyright in any text you excerpt with this software remains with its
+original author; this license grants you no rights to such text.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND.
+
+For commercial licensing, contact mayoland24@gmail.com
+
+
+────────────────────────────────────────────────────────────
+번들된 글꼴에 대하여
+
+public/fonts/ 의 글꼴 파일은 이 라이선스의 적용 대상이 아닙니다.
+각 글꼴은 자체 라이선스(SIL Open Font License 1.1 등)를 따르며,
+그 조건에 따라 상업적 이용을 포함해 자유롭게 쓸 수 있습니다.
+
+  · Noto Serif KR, Noto Sans KR — SIL Open Font License 1.1 (Google)
+  · 나눔명조 (Nanum Myeongjo)  — SIL Open Font License 1.1 (NAVER)
+  · 고운바탕 (Gowun Batang)    — SIL Open Font License 1.1
+
+OFL 전문: https://openfontlicense.org/

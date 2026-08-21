@@ -1,0 +1,211 @@
+/* ── 움직임 ─────────────────────────────────────────────────
+   조판 도구는 값을 계속 만지는 화면이라 긴 애니메이션은 방해가 된다.
+   전부 90~160ms 안에 끝내고, GPU가 싼 속성(opacity·transform)만 쓴다.
+   접근성 설정으로 모션을 끈 사용자에게는 전부 비활성화한다. */
+
+:root {
+  --np-ease: cubic-bezier(0.22, 0.7, 0.3, 1);
+  --np-fast: 110ms;
+  --np-mid: 160ms;
+}
+
+/* 버튼: 색은 부드럽게, 누를 때만 살짝 눌린다 */
+button {
+  transition:
+    background-color var(--np-fast) var(--np-ease),
+    border-color var(--np-fast) var(--np-ease),
+    color var(--np-fast) var(--np-ease),
+    transform var(--np-fast) var(--np-ease);
+}
+button:not(:disabled):active {
+  transform: translateY(0.5px) scale(0.985);
+}
+
+/* 입력 필드: 포커스 테두리가 스르륵 */
+.np-field,
+input[type='text'],
+input[type='number'],
+select,
+textarea {
+  transition:
+    border-color var(--np-fast) var(--np-ease),
+    background-color var(--np-fast) var(--np-ease),
+    box-shadow var(--np-fast) var(--np-ease);
+}
+
+/* 패널 전환 — 탭을 바꿀 때 내용이 아주 살짝 올라오며 나타난다 */
+@keyframes np-panel-in {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+.np-panel-enter {
+  animation: np-panel-in var(--np-mid) var(--np-ease);
+}
+
+/* 드롭다운·팝오버 — 위에서 내려오듯 */
+@keyframes np-pop-in {
+  from {
+    opacity: 0;
+    transform: translateY(-4px) scale(0.985);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+.np-pop {
+  animation: np-pop-in var(--np-fast) var(--np-ease);
+  transform-origin: top center;
+}
+
+/* 미리보기 페이지 — 배율이 바뀔 때 그림자만 부드럽게.
+   transform까지 전환하면 휠 확대가 끈적하게 느껴진다. */
+.np-page {
+  transition: box-shadow var(--np-mid) var(--np-ease);
+}
+
+/* 좁은 화면의 설정 서랍 */
+@keyframes np-drawer-in {
+  from {
+    transform: translateX(-12px);
+    opacity: 0;
+  }
+  to {
+    transform: none;
+    opacity: 1;
+  }
+}
+.np-drawer-in {
+  animation: np-drawer-in var(--np-mid) var(--np-ease);
+}
+
+@keyframes np-fade-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+.np-fade-in {
+  animation: np-fade-in var(--np-mid) var(--np-ease);
+}
+
+/* 좌측 탭 선택 표시 */
+@keyframes np-tab-in {
+  from {
+    opacity: 0;
+    transform: scale(0.9);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+  }
+}
+
+/* 폼 컨트롤 — 브라우저 기본 모양은 조판 도구 화면에서 지나치게 튄다 */
+
+.np-range {
+  appearance: none;
+  height: 18px;
+  background: transparent;
+  cursor: pointer;
+}
+
+.np-range::-webkit-slider-runnable-track {
+  height: 3px;
+  border-radius: 2px;
+  background: var(--ui-border-strong);
+}
+.np-range::-moz-range-track {
+  height: 3px;
+  border-radius: 2px;
+  background: var(--ui-border-strong);
+}
+
+.np-range::-webkit-slider-thumb {
+  appearance: none;
+  width: 11px;
+  height: 11px;
+  margin-top: -4px;
+  border-radius: 50%;
+  background: var(--ui-accent);
+  border: 2px solid var(--ui-surface);
+  box-shadow: 0 0 0 1px var(--ui-border-strong);
+}
+.np-range::-moz-range-thumb {
+  width: 11px;
+  height: 11px;
+  border-radius: 50%;
+  background: var(--ui-accent);
+  border: 2px solid var(--ui-surface);
+  box-shadow: 0 0 0 1px var(--ui-border-strong);
+}
+
+.np-color::-webkit-color-swatch-wrapper {
+  padding: 0;
+}
+.np-color::-webkit-color-swatch {
+  border: none;
+  border-radius: 2px;
+}
+.np-color::-moz-color-swatch {
+  border: none;
+  border-radius: 2px;
+}
+
+.np-check {
+  appearance: none;
+  width: 13px;
+  height: 13px;
+  flex: none;
+  border: 1px solid var(--ui-border-strong);
+  border-radius: 2px;
+  background: var(--ui-bg);
+  cursor: pointer;
+  position: relative;
+}
+
+.np-check:checked {
+  background: var(--ui-accent);
+  border-color: var(--ui-accent);
+}
+
+.np-check:checked::after {
+  content: '';
+  position: absolute;
+  left: 4px;
+  top: 1px;
+  width: 3px;
+  height: 7px;
+  border: solid var(--ui-accent-text);
+  border-width: 0 1.5px 1.5px 0;
+  transform: rotate(45deg);
+}
+
+/* number input의 스피너는 폭만 잡아먹는다 */
+input[type='number']::-webkit-inner-spin-button,
+input[type='number']::-webkit-outer-spin-button {
+  appearance: none;
+  margin: 0;
+}
+input[type='number'] {
+  appearance: textfield;
+  -moz-appearance: textfield;
+}

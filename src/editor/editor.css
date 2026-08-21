@@ -1,0 +1,82 @@
+/* 에디터는 "원고" 화면이다. 결과물이 아니라 작업용이므로 UI 테마를 따른다. */
+
+.np-editor-content {
+  min-height: 100%;
+  padding: 20px 22px 96px;
+  outline: none;
+  font-family: var(--ui-font-serif);
+  font-size: 14px;
+  line-height: 1.95;
+  color: var(--ui-text);
+  word-break: keep-all;
+  overflow-wrap: break-word;
+  user-select: text;
+  caret-color: var(--ui-accent);
+}
+
+.np-editor-content p {
+  margin: 0 0 0.9em;
+}
+
+.np-editor-content h1,
+.np-editor-content h2,
+.np-editor-content h3 {
+  margin: 1.5em 0 0.5em;
+  font-weight: 700;
+  line-height: 1.4;
+}
+.np-editor-content h1 { font-size: 1.5em; }
+.np-editor-content h2 { font-size: 1.28em; }
+.np-editor-content h3 { font-size: 1.1em; }
+
+.np-editor-content blockquote {
+  margin: 0 0 0.9em;
+  padding-inline-start: 1em;
+  border-inline-start: 2px solid var(--ui-border-strong);
+  color: var(--ui-text-dim);
+}
+
+.np-editor-content hr {
+  margin: 1.4em 0;
+  border: none;
+  border-top: 1px solid var(--ui-border);
+}
+
+.np-editor-content ul,
+.np-editor-content ol {
+  margin: 0 0 0.9em;
+  padding-inline-start: 1.3em;
+}
+
+.np-editor-content:focus {
+  outline: none;
+}
+
+/* 커서가 놓인 빈 문단이 완전히 사라져 보이지 않도록 */
+.np-editor-content p:empty::before {
+  content: '';
+  display: inline-block;
+}
+
+/* ── 맞춤법 밑줄 ─────────────────────────────────────────
+   유형별로 색을 나눈다. 오탈자는 빨강, 띄어쓰기·표현은 눈에 덜 띄게. */
+
+.np-spell {
+  text-decoration: underline wavy;
+  text-decoration-skip-ink: none;
+  text-underline-offset: 3px;
+  cursor: pointer;
+}
+
+.np-spell-spelling {
+  text-decoration-color: var(--ui-danger);
+}
+.np-spell-grammar {
+  text-decoration-color: var(--ui-danger);
+}
+.np-spell-spacing {
+  text-decoration-color: var(--ui-accent);
+}
+.np-spell-style {
+  text-decoration-color: var(--ui-text-dim);
+}
