@@ -115,18 +115,18 @@ export function PreviewPane() {
       const cx = e.clientX - rect.left
       const cy = e.clientY - rect.top
 
-      // 여백은 배율과 무관한 상수라 나누기 한 번으로 콘텐츠 좌표가 나온다.
-      // ⚠ clientWidth/Height를 쓴다 — getBoundingClientRect는 스크롤바 자리까지
-      //   포함해서 렌더에 쓰는 contentRect와 어긋난다.
+      // ⚠ 여백은 반드시 렌더에 쓰인 값(viewport 상태)으로 계산한다.
+      //   el.clientWidth 같은 실시간 DOM 값을 섞어 쓰면, 창 크기가 바뀌는
+      //   도중에 렌더값과 한 프레임씩 어긋나 계산이 조금씩 틀어진다.
       anchor.current = {
-        x: (el.scrollLeft + cx - padFor(el.clientWidth)) / from,
-        y: (el.scrollTop + cy - padFor(el.clientHeight)) / from,
+        x: (el.scrollLeft + cx - padFor(viewport.w)) / from,
+        y: (el.scrollTop + cy - padFor(viewport.h)) / from,
         cx,
         cy,
       }
       setZoom(to)
     },
-    [fitScale, setZoom],
+    [fitScale, setZoom, viewport.w, viewport.h],
   )
 
   useEffect(() => {
@@ -143,17 +143,17 @@ export function PreviewPane() {
       const el = scrollRef.current
       if (!el) return
       const to = clampZoom(next)
-      const cx = el.clientWidth / 2
-      const cy = el.clientHeight / 2
+      const cx = viewport.w / 2
+      const cy = viewport.h / 2
       anchor.current = {
-        x: (el.scrollLeft + cx - padFor(el.clientWidth)) / scale,
-        y: (el.scrollTop + cy - padFor(el.clientHeight)) / scale,
+        x: (el.scrollLeft + cx - padFor(viewport.w)) / scale,
+        y: (el.scrollTop + cy - padFor(viewport.h)) / scale,
         cx,
         cy,
       }
       setZoom(to)
     },
-    [scale, setZoom],
+    [scale, setZoom, viewport.w, viewport.h],
   )
 
   // 페인트 전에 스크롤을 맞춰야 한 프레임도 튀지 않는다
@@ -162,9 +162,9 @@ export function PreviewPane() {
     const a = anchor.current
     if (!el || !a) return
     anchor.current = null
-    el.scrollLeft = a.x * scale + padFor(el.clientWidth) - a.cx
-    el.scrollTop = a.y * scale + padFor(el.clientHeight) - a.cy
-  }, [scale])
+    el.scrollLeft = a.x * scale + padFor(viewport.w) - a.cx
+    el.scrollTop = a.y * scale + padFor(viewport.h) - a.cy
+  }, [scale, viewport.w, viewport.h])
 
   /* ── 창 크기가 바뀌면 여백만큼 스크롤을 보정한다 ──────────────
      둘레 여백은 뷰포트 폭을 따라간다. 좌우 분할선을 끌어 미리보기 폭이
@@ -174,8 +174,8 @@ export function PreviewPane() {
   useLayoutEffect(() => {
     const el = scrollRef.current
     if (!el) return
-    const padX = padFor(el.clientWidth)
-    const padY = padFor(el.clientHeight)
+    const padX = padFor(viewport.w)
+    const padY = padFor(viewport.h)
     const prev = prevPad.current
     prevPad.current = { x: padX, y: padY }
 
@@ -191,11 +191,9 @@ export function PreviewPane() {
   const recenter = useCallback(() => {
     const el = scrollRef.current
     if (!el) return
-    const padX = padFor(el.clientWidth)
-    const padY = padFor(el.clientHeight)
-    el.scrollLeft = padX - (el.clientWidth - baseW * scale) / 2
-    el.scrollTop = padY - Math.min(PAD * scale, (el.clientHeight - baseH * scale) / 2)
-  }, [scale, baseW, baseH])
+    el.scrollLeft = padFor(viewport.w) - (viewport.w - baseW * scale) / 2
+    el.scrollTop = padFor(viewport.h) - Math.min(PAD * scale, (viewport.h - baseH * scale) / 2)
+  }, [scale, baseW, baseH, viewport.w, viewport.h])
 
   const wasFit = useRef(true)
   useLayoutEffect(() => {
