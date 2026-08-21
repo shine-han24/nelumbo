@@ -166,6 +166,26 @@ export function PreviewPane() {
     el.scrollTop = a.y * scale + padFor(el.clientHeight) - a.cy
   }, [scale])
 
+  /* ── 창 크기가 바뀌면 여백만큼 스크롤을 보정한다 ──────────────
+     둘레 여백은 뷰포트 폭을 따라간다. 좌우 분할선을 끌어 미리보기 폭이
+     바뀌면 여백도 같이 변하는데, 스크롤을 그대로 두면 그 차이만큼
+     내용이 옆으로 쓸려 나간다. 차이를 스크롤에 더해 제자리에 붙들어 둔다. */
+  const prevPad = useRef<{ x: number; y: number } | null>(null)
+  useLayoutEffect(() => {
+    const el = scrollRef.current
+    if (!el) return
+    const padX = padFor(el.clientWidth)
+    const padY = padFor(el.clientHeight)
+    const prev = prevPad.current
+    prevPad.current = { x: padX, y: padY }
+
+    if (!prev) return // 첫 렌더에는 비교할 이전 값이 없다
+    if (zoomFit) return // 맞춤 모드는 아래 recenter가 알아서 잡는다
+
+    el.scrollLeft += padX - prev.x
+    el.scrollTop += padY - prev.y
+  }, [viewport.w, viewport.h, zoomFit])
+
   /* ── 화면에 맞추기: 여백 한가운데로 데려온다 ─────────────────
      둘레에 여백을 깔았으므로 스크롤을 맞춰 주지 않으면 빈 곳이 보인다. */
   const recenter = useCallback(() => {
