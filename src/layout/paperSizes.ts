@@ -143,7 +143,13 @@ export function contentBox(paper: PaperSize, margin: Margin) {
 /** 하단 표기가 차지하는 높이 */
 export function footerHeight(style: StyleSnapshot): number {
   const f = style.footer
-  const shown = f.showTitle || f.showPageNumber || f.showSource || f.showRule
+  const shown =
+    f.showTitle ||
+    f.showPageNumber ||
+    f.showSource ||
+    f.showPublisher ||
+    f.showSourcePage ||
+    f.showRule
   return shown ? f.fontSize * 2.4 : 0
 }
 

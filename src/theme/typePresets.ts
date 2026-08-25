@@ -47,6 +47,8 @@ const footerOff: StyleSnapshot['footer'] = {
   showPageNumber: true,
   showRule: false,
   showSource: false,
+  showPublisher: false,
+  showSourcePage: false,
   startPage: 1,
   fontSize: 10,
 }

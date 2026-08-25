@@ -111,7 +111,11 @@ export interface FooterSetup {
   showTitle: boolean
   showPageNumber: boolean
   showRule: boolean
+  /** 지은이 */
   showSource: boolean
+  showPublisher: boolean
+  /** 발췌한 원본의 쪽 범위 (앱이 매기는 쪽수와 다르다) */
+  showSourcePage: boolean
   /** 쪽수 시작 번호 */
   startPage: number
   fontSize: number

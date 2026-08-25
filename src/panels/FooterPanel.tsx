@@ -35,6 +35,16 @@ export function FooterPanel() {
         <Toggle checked={footer.showTitle} onChange={(showTitle) => setFooter({ showTitle })} label="책 제목 표시" />
         <Toggle checked={footer.showSource} onChange={(showSource) => setFooter({ showSource })} label="지은이 표시" />
         <Toggle
+          checked={footer.showPublisher}
+          onChange={(showPublisher) => setFooter({ showPublisher })}
+          label="출판사 표시"
+        />
+        <Toggle
+          checked={footer.showSourcePage}
+          onChange={(showSourcePage) => setFooter({ showSourcePage })}
+          label="원본 쪽 표시"
+        />
+        <Toggle
           checked={footer.showPageNumber}
           onChange={(showPageNumber) => setFooter({ showPageNumber })}
           label="쪽수 표시"

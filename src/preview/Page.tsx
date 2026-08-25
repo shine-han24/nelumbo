@@ -27,6 +27,17 @@ export function Page({ page, style, exportId }: Props) {
   const { footer } = style
   const showFooter = footerH > 0
 
+  // 켜져 있고 값이 있는 것만 남겨 가운뎃점으로 잇는다.
+  // 원본 쪽은 발췌한 책의 쪽 번호라, 앱이 매기는 쪽수와 다른 자리에 둔다.
+  const citation = [
+    footer.showTitle && meta.title,
+    footer.showSource && meta.author,
+    footer.showPublisher && meta.publisher,
+    footer.showSourcePage && meta.sourcePage,
+  ]
+    .filter(Boolean)
+    .join(' · ')
+
   return (
     <div
       className="np-page"
@@ -95,11 +106,7 @@ export function Page({ page, style, exportId }: Props) {
               style={{ left: 0, right: 0, top: 0, background: style.colors.paperRule }}
             />
           )}
-          <span style={{ opacity: 0.9 }}>
-            {footer.showTitle && meta.title}
-            {footer.showTitle && footer.showSource && meta.author && ' · '}
-            {footer.showSource && meta.author}
-          </span>
+          <span style={{ opacity: 0.9 }}>{citation}</span>
           <span style={{ opacity: 0.9, fontVariantNumeric: 'tabular-nums' }}>
             {footer.showPageNumber && page.index + footer.startPage}
           </span>
