@@ -1,5 +1,6 @@
 import { toBlob } from 'html-to-image'
 import { buildFontEmbedCss, type UsedFace } from './fontEmbed'
+import { dataUrlForObjectUrl } from '@/store/imageCache'
 
 export type ImageFormat = 'png' | 'jpeg' | 'webp'
 
@@ -47,6 +48,50 @@ async function fontCssFor(nodes: HTMLElement[]): Promise<string> {
   return buildFontEmbedCss([...used.values()], text)
 }
 
+const BLOB_URL_IN_CSS = /url\(["']?(blob:[^"')]+)["']?\)/
+
+/**
+ * 캡처하는 동안만 blob: 배경을 data URL로 바꿔 둔다.
+ *
+ * html-to-image는 배경을 인라인하려고 fetch(blob:...)를 시도하는데,
+ * 실패해도 예외를 던지지 않고 빈 값으로 대체한 뒤 넘어간다.
+ * 그래서 배경만 소리 없이 빠진 이미지가 나온다.
+ * 애초에 fetch가 필요 없도록 data URL을 물려주고, 끝나면 되돌린다.
+ */
+async function withInlinedBackgrounds<T>(
+  nodes: HTMLElement[],
+  run: () => Promise<T>,
+): Promise<T> {
+  const restore: Array<[HTMLElement, string]> = []
+  const converted = new Map<string, string>()
+
+  for (const node of nodes) {
+    for (const el of [node, ...node.querySelectorAll<HTMLElement>('*')]) {
+      const bg = el.style.backgroundImage
+      const found = bg && BLOB_URL_IN_CSS.exec(bg)
+      if (!found) continue
+
+      const blobUrl = found[1]
+      let dataUrl = converted.get(blobUrl)
+      if (dataUrl === undefined) {
+        dataUrl = (await dataUrlForObjectUrl(blobUrl)) ?? ''
+        converted.set(blobUrl, dataUrl)
+      }
+      if (!dataUrl) continue
+
+      restore.push([el, bg])
+      el.style.backgroundImage = bg.replace(blobUrl, dataUrl)
+    }
+  }
+
+  try {
+    return await run()
+  } finally {
+    // 되돌리지 않으면 미리보기에 거대한 data URL이 그대로 남는다
+    for (const [el, original] of restore) el.style.backgroundImage = original
+  }
+}
+
 export async function renderPage(
   node: HTMLElement,
   opts: RenderOptions,
@@ -80,12 +125,14 @@ export async function renderAllPages(
 
   const fontEmbedCSS = await fontCssFor(nodes)
 
-  const out: Blob[] = []
-  for (let i = 0; i < nodes.length; i++) {
-    out.push(await renderPage(nodes[i], opts, fontEmbedCSS))
-    onProgress?.({ done: i + 1, total: nodes.length })
-  }
-  return out
+  return withInlinedBackgrounds(nodes, async () => {
+    const out: Blob[] = []
+    for (let i = 0; i < nodes.length; i++) {
+      out.push(await renderPage(nodes[i], opts, fontEmbedCSS))
+      onProgress?.({ done: i + 1, total: nodes.length })
+    }
+    return out
+  })
 }
 
 /** 페이지 한 장만 — 폰트 CSS도 그 페이지 기준으로만 만든다 */
@@ -98,5 +145,8 @@ export async function renderOnePage(
   if (!node) throw new Error('내보낼 페이지가 없습니다.')
 
   const fontEmbedCSS = await fontCssFor([node])
-  return { blob: await renderPage(node, opts, fontEmbedCSS), node }
+  const blob = await withInlinedBackgrounds([node], () =>
+    renderPage(node, opts, fontEmbedCSS),
+  )
+  return { blob, node }
 }
