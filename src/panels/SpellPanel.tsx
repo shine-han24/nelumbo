@@ -84,7 +84,7 @@ export function SpellPanel() {
           type="button"
           disabled={running || !blocks.length}
           onClick={() => void run(blocks)}
-          className="mt-1 flex h-[32px] items-center justify-center gap-1.5 rounded-ui bg-ui-accent text-[12px] font-medium text-ui-accent-text disabled:opacity-40"
+          className="mt-1 flex h-[34px] items-center justify-center gap-1.5 rounded-ui bg-ui-accent text-[13px] font-medium text-ui-accent-text disabled:opacity-40"
         >
           {running ? <Loader2 size={12} className="animate-spin" /> : <SpellCheck size={12} />}
           {running
@@ -95,13 +95,13 @@ export function SpellPanel() {
         </button>
 
         {running && (
-          <p className="text-[10px] leading-relaxed text-ui-text-dim">
+          <p className="text-[12px] leading-relaxed text-ui-text-dim">
             문단 길이에 따라 몇 초씩 걸립니다. 한 번 검사한 문단은 다시 검사하지 않습니다.
           </p>
         )}
 
         {error && (
-          <div className="flex items-start gap-1.5 rounded-ui bg-ui-danger/12 px-2 py-1.5 text-[10px] leading-snug text-ui-danger">
+          <div className="flex items-start gap-1.5 rounded-ui bg-ui-danger/12 px-2 py-1.5 text-[12px] leading-snug text-ui-danger">
             <AlertTriangle size={12} className="mt-px shrink-0" />
             <span>{error}</span>
           </div>
@@ -112,7 +112,7 @@ export function SpellPanel() {
             {Object.entries(byType).map(([type, n]) => (
               <span
                 key={type}
-                className="rounded-[3px] bg-ui-surface-2 px-1.5 py-0.5 text-[10px] text-ui-text-dim"
+                className="rounded-[3px] bg-ui-surface-2 px-1.5 py-0.5 text-[11px] text-ui-text-dim"
               >
                 {ISSUE_LABEL[type as keyof typeof ISSUE_LABEL]} {n}
               </span>
@@ -124,7 +124,7 @@ export function SpellPanel() {
                 useSpellStore.setState({ issues: [] })
                 if (n) useSpellStore.getState().markStale()
               }}
-              className="ml-auto rounded-ui border border-ui-border px-1.5 py-0.5 text-[10px] text-ui-text hover:bg-ui-surface-2"
+              className="ml-auto rounded-ui border border-ui-border px-2 py-1 text-[12px] text-ui-text hover:bg-ui-surface-2"
             >
               모두 적용
             </button>
@@ -132,13 +132,13 @@ export function SpellPanel() {
         )}
 
         {stale && issues.length > 0 && (
-          <p className="text-[10px] text-ui-text-dim">
+          <p className="text-[12px] text-ui-text-dim">
             검사 이후 글이 바뀌었습니다. 다시 검사하면 최신 결과를 볼 수 있습니다.
           </p>
         )}
 
         {!error && !running && issues.length === 0 && !stale && (
-          <p className="text-[10px] text-ui-text-dim">지적할 부분을 찾지 못했습니다.</p>
+          <p className="text-[12px] text-ui-text-dim">지적할 부분을 찾지 못했습니다.</p>
         )}
       </Section>
 
@@ -147,16 +147,16 @@ export function SpellPanel() {
           {issues.map((issue) => (
             <div
               key={issue.sig}
-              className="border-b border-ui-border px-3 py-2 hover:bg-ui-surface-2"
+              className="border-b border-ui-border px-3 py-2.5 hover:bg-ui-surface-2"
             >
               <div className="flex items-baseline gap-1.5">
-                <span className="rounded-[3px] bg-ui-accent-soft px-1 py-px text-[9px] text-ui-accent">
+                <span className="rounded-[3px] bg-ui-accent-soft px-1.5 py-0.5 text-[11px] text-ui-accent">
                   {ISSUE_LABEL[issue.type]}
                 </span>
                 <button
                   type="button"
                   onClick={() => selectIssue(issue)}
-                  className="min-w-0 truncate text-left text-[12px] text-ui-text underline decoration-ui-danger decoration-wavy underline-offset-2"
+                  className="min-w-0 truncate text-left text-[15px] text-ui-text underline decoration-ui-danger decoration-wavy underline-offset-[3px]"
                   title="본문에서 찾기"
                 >
                   {issue.original}
@@ -164,7 +164,7 @@ export function SpellPanel() {
               </div>
 
               {issue.message && (
-                <p className="mt-1 whitespace-pre-line text-[10px] leading-snug text-ui-text-dim">
+                <p className="mt-1.5 whitespace-pre-line text-[12px] leading-relaxed text-ui-text-dim">
                   {issue.message}
                 </p>
               )}
@@ -180,9 +180,9 @@ export function SpellPanel() {
                         useSpellStore.getState().markStale()
                       }
                     }}
-                    className="flex items-center gap-1 rounded-ui bg-ui-accent px-1.5 py-0.5 text-[10px] text-ui-accent-text hover:opacity-90"
+                    className="flex items-center gap-1 rounded-ui bg-ui-accent px-2 py-1 text-[13px] text-ui-accent-text hover:opacity-90"
                   >
-                    <Check size={9} />
+                    <Check size={12} />
                     {s}
                   </button>
                 ))}
@@ -190,17 +190,17 @@ export function SpellPanel() {
                   type="button"
                   title="이 지적 무시"
                   onClick={() => ignore(issue.sig)}
-                  className="grid h-[22px] w-[22px] place-items-center rounded-ui text-ui-text-dim hover:bg-ui-bg hover:text-ui-text"
+                  className="grid h-[26px] w-[26px] place-items-center rounded-ui text-ui-text-dim hover:bg-ui-bg hover:text-ui-text"
                 >
-                  <EyeOff size={10} />
+                  <EyeOff size={13} />
                 </button>
                 <button
                   type="button"
                   title="사용자 사전에 추가"
                   onClick={() => addToDictionary(issue.original)}
-                  className="grid h-[22px] w-[22px] place-items-center rounded-ui text-ui-text-dim hover:bg-ui-bg hover:text-ui-text"
+                  className="grid h-[26px] w-[26px] place-items-center rounded-ui text-ui-text-dim hover:bg-ui-bg hover:text-ui-text"
                 >
-                  <BookPlus size={10} />
+                  <BookPlus size={13} />
                 </button>
               </div>
             </div>
@@ -208,7 +208,7 @@ export function SpellPanel() {
         </div>
       )}
 
-      <p className="px-3 py-3 text-[10px] leading-relaxed text-ui-text-dim">
+      <p className="px-3 py-3 text-[12px] leading-relaxed text-ui-text-dim">
         부산대학교 인공지능연구실과 (주)나라인포테크가 만든 바른한글 검사기를 씁니다.
         입력한 글은 검사할 때만 전송되고 저장되지 않습니다.
       </p>
