@@ -1,16 +1,15 @@
 import type { SpellIssue, SpellProvider } from '../types'
 
 /**
- * 바른한글((주)나라인포테크) 정식 API 어댑터 — 계약 대기 중.
+ * 바른한글((주)나라인포테크) 정식 API 어댑터.
  *
- * 배경: 부산대 맞춤법 검사기(speller.cs.pusan.ac.kr)는 2024년 10월 서비스가
- * 끝나고 바른한글(nara-speller.co.kr)로 이관됐다. 비공식 엔드포인트를
- * 긁는 방식은 공개 배포에 쓸 수 없어 정식 API로 간다.
+ * API 키는 이 파일 어디에도 없다. 브라우저는 우리 도메인의
+ * /api/spellcheck 만 호출하고, 키는 그 서버리스 함수 안에서만 쓰인다.
+ * (자세한 내용은 api/spellcheck.ts 주석)
  *
- * 계약이 끝나면 할 일은 두 가지뿐이다.
- *   1. Vercel 환경변수 BARUNHANGUL_API_KEY 등록
- *   2. api/spellcheck.ts 의 callBarunHangul()에 실제 엔드포인트·응답 형식 채우기
- * 이 파일은 손댈 필요가 없다. UI와 오프셋 처리는 이미 이 인터페이스에 맞춰져 있다.
+ * 청크 크기가 900자인 이유: 상류 API의 응답 시간이 글자 수에 비례한다.
+ * 실측으로 1,000자 ≈ 4.7초, 4,000자 ≈ 19초, 8,000자는 502로 끊긴다.
+ * 900자면 4초 남짓이라 서버리스 함수 제한 안에서 안전하다.
  */
 
 interface ApiResponse {
@@ -18,37 +17,48 @@ interface ApiResponse {
   error?: string
 }
 
-/** 빌드 시 주입. 값이 없으면 이 공급자는 목록에서 비활성으로 보인다. */
-const ENABLED = import.meta.env.VITE_SPELL_REMOTE === 'on'
+/** 규칙 강도 — 0: 강한 규칙, 1: 약한 규칙 */
+export type WeakOpt = 0 | 1
+
+let weakOpt: WeakOpt = 0
+export const setWeakOpt = (v: WeakOpt) => {
+  weakOpt = v
+}
 
 export const barunHangulProvider: SpellProvider = {
   id: 'barunhangul',
-  label: '바른한글 (정식 API)',
-  // 상용 API는 요청당 길이 제한이 있다. 계약 문서 확인 후 조정할 것.
-  maxChunkChars: 1000,
+  label: '바른한글',
+  maxChunkChars: 900,
   remote: true,
-  available: () => ENABLED,
-  unavailableReason:
-    '정식 API 계약 대기 중입니다. 계약이 완료되면 환경변수만 설정하면 바로 켜집니다.',
+  available: () => true,
 
   async check(text, signal) {
     const res = await fetch('/api/spellcheck', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ text, provider: 'barunhangul' }),
+      body: JSON.stringify({ text, weakOpt }),
       signal,
     })
 
-    if (!res.ok) {
-      throw new Error(
-        res.status === 429
-          ? '요청이 너무 많습니다. 잠시 후 다시 시도하세요.'
-          : `검사 서버 오류 (${res.status})`,
-      )
-    }
+    const data: ApiResponse = await res.json().catch(() => ({
+      error: '검사 서버의 응답을 읽지 못했습니다.',
+    }))
 
-    const data: ApiResponse = await res.json()
-    if (data.error) throw new Error(data.error)
+    if (!res.ok || data.error) {
+      throw new Error(data.error ?? `검사 서버 오류 (${res.status})`)
+    }
     return data.issues ?? []
   },
+}
+
+/** 서버에 키가 설정돼 있는지 물어본다 (빌드타임 플래그 없이 한 번에 판별) */
+export async function probeRemote(): Promise<boolean> {
+  try {
+    const res = await fetch('/api/spellcheck', { method: 'GET' })
+    if (!res.ok) return false
+    const data = (await res.json()) as { configured?: boolean }
+    return Boolean(data.configured)
+  } catch {
+    return false
+  }
 }

@@ -1,18 +1,10 @@
 import { create } from 'zustand'
 import type { Block } from '@/types'
-import type { SpellIssue, SpellProvider } from './types'
+import type { SpellIssue } from './types'
 import { chunkBySentence } from './types'
-import { barunHangulProvider } from './providers/barunhangul'
+import { barunHangulProvider, probeRemote, setWeakOpt, type WeakOpt } from './providers/barunhangul'
 
-/**
- * 지금은 바른한글 정식 API 하나만 둔다.
- *
- * 규칙 기반 검사기(localRules)는 형태소 분석을 못 해서 문맥이 필요한 오류를
- * 놓치고, 그걸 "맞춤법 검사"라고 내놓으면 사용자가 결과를 믿어 버린다.
- * 어설픈 검사기보다 "준비 중"이 정직하다. 코드는 남겨 뒀으니 필요하면
- * 이 배열에 다시 넣기만 하면 된다.
- */
-export const PROVIDERS: SpellProvider[] = [barunHangulProvider]
+const provider = barunHangulProvider
 
 export interface FoundIssue extends SpellIssue {
   blockId: string
@@ -21,18 +13,25 @@ export interface FoundIssue extends SpellIssue {
   sig: string
 }
 
+/** 서버에 검사기가 설정돼 있는지 */
+export type RemoteState = 'unknown' | 'ready' | 'unconfigured'
+
 interface SpellState {
-  providerId: string
+  remote: RemoteState
   issues: FoundIssue[]
   running: boolean
+  /** 진행 상황 — 문단 단위 검사가 몇 초씩 걸려 표시가 필요하다 */
+  progress: { done: number; total: number } | null
   error: string | null
   /** 마지막 검사 이후 문서가 바뀌었는가 */
   stale: boolean
+  weakOpt: WeakOpt
   ignored: Set<string>
   /** 사용자 사전 — 여기 등록된 표현은 지적하지 않는다 */
   dictionary: Set<string>
 
-  setProvider: (id: string) => void
+  probe: () => Promise<void>
+  setWeak: (v: WeakOpt) => void
   run: (blocks: Block[]) => Promise<void>
   markStale: () => void
   ignore: (sig: string) => void
@@ -46,20 +45,49 @@ const signature = (blockIndex: number, i: SpellIssue) =>
   `${blockIndex}:${i.start}:${i.original}:${i.type}`
 
 // 문단 텍스트 → 결과. 안 바뀐 문단은 다시 검사하지 않는다.
+// 문단마다 수 초가 걸리므로 이 캐시가 체감 속도를 좌우한다.
 const cache = new Map<string, SpellIssue[]>()
 
+/** 문단 하나를 검사한다 (필요하면 문장 경계에서 잘라 여러 번) */
+async function checkBlock(text: string, weakOpt: WeakOpt): Promise<SpellIssue[]> {
+  const key = `${weakOpt}::${text}`
+  const hit = cache.get(key)
+  if (hit) return hit
+
+  const out: SpellIssue[] = []
+  for (const chunk of chunkBySentence(text, provider.maxChunkChars)) {
+    const issues = await provider.check(chunk.text)
+    // 오프셋을 원문 기준으로 되돌린다
+    for (const issue of issues) {
+      out.push({ ...issue, start: issue.start + chunk.offset, end: issue.end + chunk.offset })
+    }
+  }
+  cache.set(key, out)
+  return out
+}
+
+/** 동시에 몇 개까지 보낼지 — 상류 API를 몰아치지 않으면서 체감 속도는 확보 */
+const CONCURRENCY = 3
+
 export const useSpellStore = create<SpellState>((set, get) => ({
-  providerId: 'barunhangul',
+  remote: 'unknown',
   issues: [],
   running: false,
+  progress: null,
   error: null,
   stale: false,
+  weakOpt: 0,
   ignored: new Set(),
   dictionary: new Set(),
 
-  setProvider: (providerId) => {
-    cache.clear()
-    set({ providerId, issues: [], stale: true, error: null })
+  probe: async () => {
+    set({ remote: (await probeRemote()) ? 'ready' : 'unconfigured' })
+  },
+
+  setWeak: (weakOpt) => {
+    setWeakOpt(weakOpt)
+    cache.clear() // 규칙 강도가 바뀌면 이전 결과는 못 쓴다
+    set({ weakOpt, issues: [], stale: true })
   },
 
   markStale: () => {
@@ -80,56 +108,63 @@ export const useSpellStore = create<SpellState>((set, get) => ({
 
   removeIssue: (sig) => set((s) => ({ issues: s.issues.filter((i) => i.sig !== sig) })),
 
-  clear: () => set({ issues: [], error: null, stale: false }),
+  clear: () => set({ issues: [], error: null, stale: false, progress: null }),
 
   async run(blocks) {
-    const { providerId, ignored, dictionary } = get()
-    const provider = PROVIDERS.find((p) => p.id === providerId) ?? PROVIDERS[0]
+    const { ignored, dictionary, weakOpt } = get()
 
-    if (!provider.available()) {
-      set({ error: provider.unavailableReason ?? '사용할 수 없는 검사기입니다.', issues: [] })
+    const targets = blocks
+      .map((block, index) => ({ block, index }))
+      .filter(({ block }) => block.text.trim().length > 0)
+
+    if (targets.length === 0) {
+      set({ issues: [], running: false, stale: false, error: null })
       return
     }
 
-    set({ running: true, error: null })
+    set({ running: true, error: null, progress: { done: 0, total: targets.length } })
 
     try {
-      const found: FoundIssue[] = []
+      const results: FoundIssue[][] = new Array(targets.length)
+      let done = 0
+      let cursor = 0
 
-      for (let bi = 0; bi < blocks.length; bi++) {
-        const block = blocks[bi]
-        if (!block.text.trim()) continue
+      // 문단 여러 개를 동시에 보낸다. 순차로 돌리면 문단마다 몇 초씩 쌓여
+      // 긴 원고에서 하염없이 기다리게 된다.
+      const worker = async () => {
+        while (cursor < targets.length) {
+          const at = cursor++
+          const { block, index } = targets[at]
+          const issues = await checkBlock(block.text, weakOpt)
 
-        const key = `${provider.id}::${block.text}`
-        let result = cache.get(key)
+          results[at] = issues
+            .map((issue) => ({
+              ...issue,
+              blockId: block.id,
+              blockIndex: index,
+              sig: signature(index, issue),
+            }))
+            .filter((i) => !ignored.has(i.sig) && !dictionary.has(i.original))
 
-        if (!result) {
-          result = []
-          // 공급자 한도에 맞춰 문장 경계에서 자르고, 오프셋은 원문 기준으로 되돌린다
-          for (const chunk of chunkBySentence(block.text, provider.maxChunkChars)) {
-            const issues = await provider.check(chunk.text)
-            for (const issue of issues) {
-              result.push({
-                ...issue,
-                start: issue.start + chunk.offset,
-                end: issue.end + chunk.offset,
-              })
-            }
-          }
-          cache.set(key, result)
-        }
-
-        for (const issue of result) {
-          const sig = signature(bi, issue)
-          if (ignored.has(sig) || dictionary.has(issue.original)) continue
-          found.push({ ...issue, blockId: block.id, blockIndex: bi, sig })
+          done++
+          set({ progress: { done, total: targets.length } })
         }
       }
 
-      set({ issues: found, running: false, stale: false })
+      await Promise.all(
+        Array.from({ length: Math.min(CONCURRENCY, targets.length) }, worker),
+      )
+
+      set({
+        issues: results.flat().filter(Boolean),
+        running: false,
+        stale: false,
+        progress: null,
+      })
     } catch (e) {
       set({
         running: false,
+        progress: null,
         error: e instanceof Error ? e.message : '검사에 실패했습니다.',
       })
     }

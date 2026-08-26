@@ -1,43 +1,51 @@
 import { useEffect } from 'react'
 import { AlertTriangle, BookPlus, Check, EyeOff, Loader2, SpellCheck } from 'lucide-react'
 import { useDocStore } from '@/store/docStore'
-import { PROVIDERS, useSpellStore } from '@/spell/spellStore'
+import { useSpellStore } from '@/spell/spellStore'
 import { ISSUE_LABEL } from '@/spell/types'
 import { applyAll, applyIssue, selectIssue } from '@/spell/applyIssue'
 import { getEditor } from '@/editor/editorRef'
 import { IconPistol } from '@/ui/icons'
-import { Row, Section, Select } from '@/ui/Control'
+import { Row, Section, Segmented } from '@/ui/Control'
 
 export function SpellPanel() {
   const blocks = useDocStore((s) => s.blocks)
   const {
-    providerId,
+    remote,
     issues,
     running,
+    progress,
     error,
     stale,
-    setProvider,
+    weakOpt,
+    probe,
+    setWeak,
     run,
     ignore,
     addToDictionary,
     removeIssue,
   } = useSpellStore()
 
-  const provider = PROVIDERS.find((p) => p.id === providerId)
+  // 서버에 키가 설정돼 있는지 한 번 물어본다 (빌드타임 플래그가 필요 없다)
+  useEffect(() => {
+    if (remote === 'unknown') void probe()
+  }, [remote, probe])
 
   // 지적 목록이 바뀌면 에디터 밑줄을 갱신한다
   useEffect(() => {
     getEditor()?.commands.setSpellIssues(issues)
   }, [issues])
 
-  const byType = issues.reduce<Record<string, number>>((acc, i) => {
-    acc[i.type] = (acc[i.type] ?? 0) + 1
-    return acc
-  }, {})
+  if (remote === 'unknown') {
+    return (
+      <div className="flex items-center justify-center gap-2 py-10 text-[12px] text-ui-text-dim">
+        <Loader2 size={14} className="animate-spin" />
+        검사기 확인 중
+      </div>
+    )
+  }
 
-  // 쓸 수 있는 검사기가 하나도 없으면 설정을 늘어놓을 이유가 없다.
-  // 지금이 무슨 상태인지만 분명히 알려 준다.
-  if (!provider?.available()) {
+  if (remote === 'unconfigured') {
     return (
       <div className="flex flex-col items-center gap-3 px-5 py-10 text-center">
         <span className="text-ui-text-dim opacity-70">
@@ -45,7 +53,7 @@ export function SpellPanel() {
         </span>
         <p className="text-[13px] font-medium text-ui-text">맞춤법 검사기는 준비 중입니다</p>
         <p className="text-[11px] leading-relaxed text-ui-text-dim">
-          바른한글((주)나라인포테크) 정식 API 연동을 준비하고 있습니다.
+          바른한글 API 연동을 준비하고 있습니다.
           <br />
           연동이 끝나면 이 화면에서 바로 검사할 수 있습니다.
         </p>
@@ -53,21 +61,24 @@ export function SpellPanel() {
     )
   }
 
+  const byType = issues.reduce<Record<string, number>>((acc, i) => {
+    acc[i.type] = (acc[i.type] ?? 0) + 1
+    return acc
+  }, {})
+
   return (
     <>
-      <Section title="검사기">
-        {PROVIDERS.length > 1 && (
-          <Row label="공급자">
-            <Select
-              value={providerId}
-              onChange={setProvider}
-              options={PROVIDERS.map((p) => ({
-                value: p.id,
-                label: p.available() ? p.label : `${p.label} — 준비 중`,
-              }))}
-            />
-          </Row>
-        )}
+      <Section title="검사">
+        <Row label="규칙">
+          <Segmented<'0' | '1'>
+            value={String(weakOpt) as '0' | '1'}
+            onChange={(v) => setWeak(v === '1' ? 1 : 0)}
+            options={[
+              { value: '0', label: '강하게', title: '강한 규칙 — 더 많이 잡아냅니다' },
+              { value: '1', label: '느슨하게', title: '약한 규칙 — 확실한 것만 잡아냅니다' },
+            ]}
+          />
+        </Row>
 
         <button
           type="button"
@@ -76,11 +87,21 @@ export function SpellPanel() {
           className="mt-1 flex h-[32px] items-center justify-center gap-1.5 rounded-ui bg-ui-accent text-[12px] font-medium text-ui-accent-text disabled:opacity-40"
         >
           {running ? <Loader2 size={12} className="animate-spin" /> : <SpellCheck size={12} />}
-          {running ? '검사 중' : '맞춤법 검사'}
+          {running
+            ? progress
+              ? `검사 중 ${progress.done}/${progress.total}문단`
+              : '검사 중'
+            : '맞춤법 검사'}
         </button>
 
+        {running && (
+          <p className="text-[10px] leading-relaxed text-ui-text-dim">
+            문단 길이에 따라 몇 초씩 걸립니다. 한 번 검사한 문단은 다시 검사하지 않습니다.
+          </p>
+        )}
+
         {error && (
-          <div className="flex items-start gap-1.5 rounded-ui bg-ui-danger/12 px-2 py-1.5 text-[11px] leading-snug text-ui-danger">
+          <div className="flex items-start gap-1.5 rounded-ui bg-ui-danger/12 px-2 py-1.5 text-[10px] leading-snug text-ui-danger">
             <AlertTriangle size={12} className="mt-px shrink-0" />
             <span>{error}</span>
           </div>
@@ -91,7 +112,7 @@ export function SpellPanel() {
             {Object.entries(byType).map(([type, n]) => (
               <span
                 key={type}
-                className="rounded-[3px] bg-ui-surface-2 px-1.5 py-0.5 text-[11px] text-ui-text-dim"
+                className="rounded-[3px] bg-ui-surface-2 px-1.5 py-0.5 text-[10px] text-ui-text-dim"
               >
                 {ISSUE_LABEL[type as keyof typeof ISSUE_LABEL]} {n}
               </span>
@@ -103,7 +124,7 @@ export function SpellPanel() {
                 useSpellStore.setState({ issues: [] })
                 if (n) useSpellStore.getState().markStale()
               }}
-              className="ml-auto rounded-ui border border-ui-border px-1.5 py-0.5 text-[11px] text-ui-text hover:bg-ui-surface-2"
+              className="ml-auto rounded-ui border border-ui-border px-1.5 py-0.5 text-[10px] text-ui-text hover:bg-ui-surface-2"
             >
               모두 적용
             </button>
@@ -111,15 +132,13 @@ export function SpellPanel() {
         )}
 
         {stale && issues.length > 0 && (
-          <p className="text-[11px] text-ui-text-dim">
+          <p className="text-[10px] text-ui-text-dim">
             검사 이후 글이 바뀌었습니다. 다시 검사하면 최신 결과를 볼 수 있습니다.
           </p>
         )}
 
         {!error && !running && issues.length === 0 && !stale && (
-          <p className="text-[11px] text-ui-text-dim">
-            지적할 부분을 찾지 못했습니다.
-          </p>
+          <p className="text-[10px] text-ui-text-dim">지적할 부분을 찾지 못했습니다.</p>
         )}
       </Section>
 
@@ -131,7 +150,7 @@ export function SpellPanel() {
               className="border-b border-ui-border px-3 py-2 hover:bg-ui-surface-2"
             >
               <div className="flex items-baseline gap-1.5">
-                <span className="rounded-[3px] bg-ui-accent-soft px-1 py-px text-[10px] text-ui-accent">
+                <span className="rounded-[3px] bg-ui-accent-soft px-1 py-px text-[9px] text-ui-accent">
                   {ISSUE_LABEL[issue.type]}
                 </span>
                 <button
@@ -144,7 +163,11 @@ export function SpellPanel() {
                 </button>
               </div>
 
-              <p className="mt-1 text-[11px] leading-snug text-ui-text-dim">{issue.message}</p>
+              {issue.message && (
+                <p className="mt-1 whitespace-pre-line text-[10px] leading-snug text-ui-text-dim">
+                  {issue.message}
+                </p>
+              )}
 
               <div className="mt-1.5 flex flex-wrap items-center gap-1">
                 {issue.suggestions.map((s) => (
@@ -157,7 +180,7 @@ export function SpellPanel() {
                         useSpellStore.getState().markStale()
                       }
                     }}
-                    className="flex items-center gap-1 rounded-ui bg-ui-accent px-1.5 py-0.5 text-[11px] text-ui-accent-text hover:opacity-90"
+                    className="flex items-center gap-1 rounded-ui bg-ui-accent px-1.5 py-0.5 text-[10px] text-ui-accent-text hover:opacity-90"
                   >
                     <Check size={9} />
                     {s}
@@ -185,9 +208,9 @@ export function SpellPanel() {
         </div>
       )}
 
-      <p className="px-3 py-3 text-[11px] leading-relaxed text-ui-text-dim">
-        기본 검사기는 형태소 분석 없이 규칙으로만 판단합니다. 문맥이 필요한 오류(로서/로써,
-        바람/바램 등)는 잡지 못하니 참고용으로 쓰세요.
+      <p className="px-3 py-3 text-[10px] leading-relaxed text-ui-text-dim">
+        부산대학교 인공지능연구실과 (주)나라인포테크가 만든 바른한글 검사기를 씁니다.
+        입력한 글은 검사할 때만 전송되고 저장되지 않습니다.
       </p>
     </>
   )
